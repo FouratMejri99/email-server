@@ -1,9 +1,9 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
+import fs from "fs";
 import nodemailer from "nodemailer";
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
 
 dotenv.config();
@@ -92,9 +92,7 @@ body { background:#f3f4f6; font-family:Arial; margin:0; }
 </html>
 `;
 
-
 // ---------------- ROUTES ----------------
-
 
 app.post("/api/subscribe", async (req, res) => {
   try {
@@ -132,7 +130,7 @@ app.post("/api/subscribe", async (req, res) => {
         __dirname,
         "client",
         "public",
-        "elearning_localization_guide.pdf"
+        "elearning_localization_guide.pdf",
       );
 
       console.log("PDF exists:", fs.existsSync(pdfPath));
@@ -162,9 +160,36 @@ app.post("/api/subscribe", async (req, res) => {
     });
 
     res.json({ success: true });
-
   } catch (err) {
     console.error("SUBSCRIBE ERROR:", err);
+    res.status(500).json({ success: false });
+  }
+});
+
+app.post("/api/send-lead", async (req, res) => {
+  try {
+    const { name, email, company, phone, message, service } = req.body;
+
+    await transporter.sendMail({
+      from: `"Solupedia" <${process.env.SMTP_USER}>`,
+      to: ADMIN_EMAILS,
+      subject: "📩 New Lead",
+      html: `
+        <div style="font-family:Arial;padding:20px;">
+          <h2>📩 New Lead Received</h2>
+          <p><b>Name:</b> ${name || "N/A"}</p>
+          <p><b>Email:</b> ${email}</p>
+          <p><b>Company:</b> ${company || "N/A"}</p>
+          <p><b>Phone:</b> ${phone || "N/A"}</p>
+          <p><b>Service:</b> ${service || "N/A"}</p>
+          <p><b>Message:</b><br/>${message || "N/A"}</p>
+        </div>
+      `,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("SEND LEAD ERROR:", err);
     res.status(500).json({ success: false });
   }
 });
@@ -183,7 +208,7 @@ app.post("/api/send-guide", async (req, res) => {
       __dirname,
       "client",
       "public",
-      "elearning_localization_guide.pdf"
+      "elearning_localization_guide.pdf",
     );
 
     // 🧪 Debug check
@@ -233,7 +258,6 @@ app.post("/api/test-admin", async (req, res) => {
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
-
 
 app.listen(PORT, () => {
   console.log("🚀 Server running on port", PORT);
